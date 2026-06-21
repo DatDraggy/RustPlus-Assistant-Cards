@@ -1,7 +1,7 @@
 # Rust Storage Monitor Card
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-![Home Assistant Minimum Version](https://img.shields.io/badge/Home%20Assistant-2023.8.0%2B-blue.svg)
+![Home Assistant Minimum Version](https://img.shields.io/badge/Home%20Assistant-2026.6.4%2B-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 A custom Home Assistant Lovelace card designed specifically for the **Rust+ Assistant** integration. It displays the contents of your in-game Rust containers (chests, Tool Cupboards, etc.) as a realistic visual grid with items grouped into custom stack sizes, just like the in-game inventory.
@@ -36,7 +36,7 @@ A custom Home Assistant Lovelace card designed specifically for the **Rust+ Assi
 
 ## Configuration
 
-The card can be configured using the visual card editor UI or manually in YAML:
+Add the card to your dashboard and configure it in YAML:
 
 ```yaml
 type: custom:rust-storage-card

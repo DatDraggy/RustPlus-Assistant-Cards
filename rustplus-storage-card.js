@@ -9,7 +9,8 @@ class RustStorageCard extends HTMLElement {
       throw new Error('Please define a Rust+ Storage Monitor entity');
     }
     this.config = {
-      title: 'Storage Monitor',
+      // No default title: render() falls back to the entity's friendly_name,
+      // then to 'Storage Monitor', when the user hasn't set one.
       columns: 6,
       slots: 30,
       show_empty: true,
@@ -17,6 +18,15 @@ class RustStorageCard extends HTMLElement {
       custom_stack_sizes: {},
       ...config
     };
+  }
+
+  escapeHtml(unsafe) {
+    return String(unsafe)
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
   }
 
   set hass(hass) {
@@ -27,6 +37,11 @@ class RustStorageCard extends HTMLElement {
       this.renderError(`Entity not found: ${entityId}`);
       return;
     }
+
+    if (this._stateObj === stateObj) {
+      return;
+    }
+    this._stateObj = stateObj;
 
     this._hass = hass;
     this.render(stateObj);
@@ -44,15 +59,20 @@ class RustStorageCard extends HTMLElement {
           border: 1px solid #fca5a5;
         }
       </style>
-      <div class="error">${message}</div>
+      <div class="error">${this.escapeHtml(message)}</div>
     `;
   }
 
   // Get default stack size for an item name
   getStackSize(itemName) {
-    // Check config first
+    // Check config first. Ignore non-positive/invalid values so a misconfigured
+    // custom_stack_sizes entry can't produce a zero stack (which would cause an
+    // infinite loop in the stack-splitting code below).
     if (this.config.custom_stack_sizes && this.config.custom_stack_sizes[itemName] !== undefined) {
-      return this.config.custom_stack_sizes[itemName];
+      const custom = parseInt(this.config.custom_stack_sizes[itemName], 10);
+      if (Number.isFinite(custom) && custom > 0) {
+        return custom;
+      }
     }
     
     // Normalize item name for match
@@ -168,7 +188,7 @@ class RustStorageCard extends HTMLElement {
       const quantity = parseInt(value, 10);
       if (isNaN(quantity) || quantity <= 0) continue;
       
-      const maxStack = this.getStackSize(key);
+      const maxStack = Math.max(1, this.getStackSize(key));
       let remaining = quantity;
       
       while (remaining > 0) {
@@ -217,13 +237,13 @@ class RustStorageCard extends HTMLElement {
         }
         
         ha-card {
-          background: #1e1f22;
-          color: #f2f3f5;
+          background: var(--card-background-color, #1e1f22);
+          color: var(--primary-text-color, #f2f3f5);
           padding: 16px;
           border-radius: 12px;
-          border: 1px solid #2b2d31;
+          border: 1px solid var(--divider-color, #2b2d31);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-          font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+          font-family: var(--paper-font-body1_-_font-family, 'Outfit', 'Inter', system-ui, sans-serif);
         }
 
         .header {
@@ -279,7 +299,7 @@ class RustStorageCard extends HTMLElement {
           align-items: center;
           justify-content: center;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          cursor: pointer;
+          cursor: default;
         }
 
         .slot:hover {
@@ -372,38 +392,40 @@ class RustStorageCard extends HTMLElement {
         }
       </style>
 
-      <ha-card>
+      <ha-card role="region" aria-label="${this.escapeHtml(title)} Inventory">
         <div class="header">
-          <div class="title">
+          <div class="title" role="heading" aria-level="2">
             <ha-icon icon="mdi:package-variant-closed"></ha-icon>
-            <span>${title}</span>
+            <span>${this.escapeHtml(title)}</span>
           </div>
-          <div class="status-badge">${stateObj.state} Slots</div>
+          <div class="status-badge" aria-label="${this.escapeHtml(stateObj.state)} Total Slots">${this.escapeHtml(stateObj.state)} Slots</div>
         </div>
 
-        <div class="grid">
+        <div class="grid" role="list" aria-label="Inventory Slots">
           ${gridItems.map(item => {
             if (!item) {
-              return `<div class="slot empty"></div>`;
+              return `<div class="slot empty" role="listitem" aria-label="Empty slot"></div>`;
             }
+            const escapedLabel = this.escapeHtml(item.details.label);
+            const escapedQuantity = this.escapeHtml(item.quantity);
             return `
-              <div class="slot" title="${item.details.label}: ${item.quantity}">
+              <div class="slot" role="listitem" aria-label="${escapedLabel}: ${escapedQuantity}" title="${escapedLabel}: ${escapedQuantity}">
                 <div class="slot-content" style="--item-bg: ${item.details.bg}; --item-border: ${item.details.border}; --item-color: ${item.details.color};">
                   <ha-icon icon="${item.details.icon}"></ha-icon>
                 </div>
-                <div class="quantity">${item.quantity}</div>
+                <div class="quantity">${escapedQuantity}</div>
               </div>
             `;
           }).join('')}
         </div>
 
         ${showUpkeep ? `
-          <div class="upkeep">
+          <div class="upkeep" role="status" aria-label="Decay Upkeep: ${this.escapeHtml(upkeepDuration)}">
             <span class="upkeep-label">
               <ha-icon icon="mdi:shield-home-outline" style="--mdc-icon-size: 18px;"></ha-icon>
               Decay Upkeep
             </span>
-            <span class="upkeep-val ${upkeepClass}">${upkeepDuration}</span>
+            <span class="upkeep-val ${upkeepClass}">${this.escapeHtml(upkeepDuration)}</span>
           </div>
         ` : ''}
       </ha-card>
@@ -414,22 +436,94 @@ class RustStorageCard extends HTMLElement {
   static getStubConfig() {
     return {
       entity: '',
-      title: 'Tool Cupboard',
+      title: '',
       columns: 6,
-      slots: 24,
+      slots: 30,
       show_empty: true,
       show_upkeep: true
     };
   }
+
+  // Provide a visual (GUI) editor in the Lovelace card picker.
+  static getConfigElement() {
+    return document.createElement('rust-storage-card-editor');
+  }
+
+  getCardSize() {
+    return Math.ceil((this.config?.slots || 30) / (this.config?.columns || 6)) + 1;
+  }
 }
 
-customElements.define('rust-storage-card', RustStorageCard);
+// Visual editor for the card, built on Home Assistant's <ha-form>. Advanced
+// options (custom_stack_sizes) remain YAML-only.
+class RustStorageCardEditor extends HTMLElement {
+  setConfig(config) {
+    this._config = config;
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  _render() {
+    if (!this._hass || !this._config) {
+      return;
+    }
+    if (!this._form) {
+      this._form = document.createElement('ha-form');
+      this._form.addEventListener('value-changed', (ev) => this._valueChanged(ev));
+      this._form.computeLabel = (schema) => {
+        const labels = {
+          entity: 'Storage Monitor entity',
+          title: 'Title (blank = use entity name)',
+          columns: 'Columns',
+          slots: 'Total slots',
+          show_empty: 'Show empty slots',
+          show_upkeep: 'Show decay upkeep'
+        };
+        return labels[schema.name] || schema.name;
+      };
+      this.appendChild(this._form);
+    }
+    this._form.hass = this._hass;
+    this._form.data = this._config;
+    this._form.schema = [
+      { name: 'entity', required: true, selector: { entity: { domain: 'sensor' } } },
+      { name: 'title', selector: { text: {} } },
+      { name: 'columns', selector: { number: { min: 1, max: 12, mode: 'box' } } },
+      { name: 'slots', selector: { number: { min: 1, max: 120, mode: 'box' } } },
+      { name: 'show_empty', selector: { boolean: {} } },
+      { name: 'show_upkeep', selector: { boolean: {} } }
+    ];
+  }
+
+  _valueChanged(ev) {
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: ev.detail.value },
+      bubbles: true,
+      composed: true
+    }));
+  }
+}
+
+// Guard define() so a double-load of this module doesn't throw.
+if (!customElements.get('rust-storage-card')) {
+  customElements.define('rust-storage-card', RustStorageCard);
+}
+if (!customElements.get('rust-storage-card-editor')) {
+  customElements.define('rust-storage-card-editor', RustStorageCardEditor);
+}
 
 // Configure the card in Lovelace Card Picker
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'rust-storage-card',
-  name: 'Rust Storage Monitor Card',
-  description: 'Displays Rust container items in configurable stack sizes as grid slots.',
-  preview: true
-});
+if (!window.customCards.some((c) => c.type === 'rust-storage-card')) {
+  window.customCards.push({
+    type: 'rust-storage-card',
+    name: 'Rust Storage Monitor Card',
+    description: 'Displays Rust container items in configurable stack sizes as grid slots.',
+    preview: true,
+    documentationURL: 'https://github.com/DatDraggy/RustPlus-Assistant-Cards'
+  });
+}

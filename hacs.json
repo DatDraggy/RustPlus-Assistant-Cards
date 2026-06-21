@@ -1,5 +1,6 @@
 {
   "name": "Rust Storage Monitor Card",
   "filename": "rustplus-storage-card.js",
-  "render_readme": true
+  "render_readme": true,
+  "content_in_root": true
 }
