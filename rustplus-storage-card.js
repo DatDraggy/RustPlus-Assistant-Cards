@@ -4,6 +4,11 @@ class RustStorageCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
   }
 
+  // A Tool Cupboard has 5 dedicated tool slots (Hammer, Building Plan, Spray
+  // Can, Hose Tool, Wire Tool) sitting above the upkeep resources in-game. We
+  // mirror that by surfacing tools in their own row first.
+  static TOOL_SLOTS = 5;
+
   setConfig(config) {
     if (!config.entity) {
       throw new Error('Please define a Rust+ Storage Monitor entity');
@@ -15,6 +20,7 @@ class RustStorageCard extends HTMLElement {
       slots: 30,
       show_empty: true,
       show_upkeep: true,
+      show_tools: true,
       custom_stack_sizes: {},
       ...config
     };
@@ -95,16 +101,41 @@ class RustStorageCard extends HTMLElement {
     return 1000; // default fallback
   }
 
+  // Recognise the building tools that live in the Tool Cupboard's dedicated
+  // tool slots. Returns styling (with isTool: true) or null for non-tools.
+  getToolDetails(itemName) {
+    const name = itemName.toLowerCase();
+    const make = (icon, color) => ({
+      icon,
+      color,
+      bg: 'rgba(96, 165, 250, 0.12)',
+      border: 'rgba(96, 165, 250, 0.35)',
+      label: itemName,
+      isTool: true
+    });
+
+    if (name.includes('hammer')) return make('mdi:hammer', '#f59e0b');
+    if (name.includes('building plan') || name.includes('planner')) return make('mdi:floor-plan', '#60a5fa');
+    if (name.includes('spray can') || name.includes('spraycan') || name.includes('building skin')) return make('mdi:spray', '#34d399');
+    if (name.includes('hose tool') || name === 'hose') return make('mdi:water', '#38bdf8');
+    if (name.includes('wire tool') || name.includes('electric tool')) return make('mdi:flash', '#fbbf24');
+    return null;
+  }
+
   // Get styling / icons for items
   getItemDetails(itemName) {
     const name = itemName.toLowerCase();
-    
+
+    const tool = this.getToolDetails(itemName);
+    if (tool) return tool;
+
     const details = {
       icon: 'mdi:cube-outline',
       color: '#9ca3af',
       bg: 'rgba(156, 163, 175, 0.1)',
       border: 'rgba(156, 163, 175, 0.3)',
-      label: itemName
+      label: itemName,
+      isTool: false
     };
 
     if (name.includes('wood')) {
@@ -202,17 +233,48 @@ class RustStorageCard extends HTMLElement {
       }
     }
 
-    // Determine total slots grid size
-    const totalSlots = Math.max(this.config.slots, Math.ceil(stacks.length / this.config.columns) * this.config.columns);
+    // Split tools out so they lead, mirroring the Tool Cupboard's tool slots.
+    const toolStacks = stacks.filter((s) => s.details.isTool);
+    const resourceStacks = stacks.filter((s) => !s.details.isTool);
+
+    // Tools row: the 5 dedicated slots (or more if somehow overfull), padded.
+    const toolSlotCount = Math.max(RustStorageCard.TOOL_SLOTS, toolStacks.length);
+    const toolItems = [...toolStacks];
+    if (this.config.show_empty) {
+      while (toolItems.length < toolSlotCount) {
+        toolItems.push(null);
+      }
+    }
+    const showTools = this.config.show_tools && toolItems.length > 0;
+
+    // Determine total slots grid size for the resource grid.
+    const totalSlots = Math.max(this.config.slots, Math.ceil(resourceStacks.length / this.config.columns) * this.config.columns);
     const columns = this.config.columns;
-    
+
     // Fill empty slots if requested
-    const gridItems = [...stacks];
+    const gridItems = [...resourceStacks];
     if (this.config.show_empty) {
       while (gridItems.length < totalSlots) {
         gridItems.push(null);
       }
     }
+
+    // One slot's worth of markup, shared by the tools row and resource grid.
+    const renderSlot = (item, extraClass = '') => {
+      if (!item) {
+        return `<div class="slot empty ${extraClass}" role="listitem" aria-label="Empty slot"></div>`;
+      }
+      const escapedLabel = this.escapeHtml(item.details.label);
+      const escapedQuantity = this.escapeHtml(item.quantity);
+      return `
+        <div class="slot ${extraClass}" role="listitem" aria-label="${escapedLabel}: ${escapedQuantity}" title="${escapedLabel}: ${escapedQuantity}">
+          <div class="slot-content" style="--item-bg: ${item.details.bg}; --item-border: ${item.details.border}; --item-color: ${item.details.color};">
+            <ha-icon icon="${item.details.icon}"></ha-icon>
+          </div>
+          <div class="quantity">${escapedQuantity}</div>
+        </div>
+      `;
+    };
 
     // Check for upkeep duration attribute
     const upkeepDuration = attributes['Upkeep Duration'] || attributes['upkeep_duration'];
@@ -287,6 +349,37 @@ class RustStorageCard extends HTMLElement {
           padding: 12px;
           border-radius: 8px;
           border: 1px solid #111214;
+        }
+
+        .tools-grid {
+          grid-template-columns: repeat(${RustStorageCard.TOOL_SLOTS}, 1fr);
+          margin-bottom: 10px;
+        }
+
+        .section-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 6px;
+          font-size: 0.72rem;
+          font-weight: 600;
+          letter-spacing: 0.6px;
+          text-transform: uppercase;
+          color: #9ca3af;
+        }
+
+        .section-label ha-icon {
+          color: #cd5228;
+        }
+
+        .slot.tool {
+          background: #20232b;
+          border-color: #2c3340;
+        }
+
+        .slot.tool:hover {
+          border-color: #60a5fa;
+          box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
         }
 
         .slot {
@@ -401,22 +494,22 @@ class RustStorageCard extends HTMLElement {
           <div class="status-badge" aria-label="${this.escapeHtml(stateObj.state)} Total Slots">${this.escapeHtml(stateObj.state)} Slots</div>
         </div>
 
+        ${showTools ? `
+          <div class="section-label">
+            <ha-icon icon="mdi:tools" style="--mdc-icon-size: 16px;"></ha-icon>
+            Tools
+          </div>
+          <div class="grid tools-grid" role="list" aria-label="Tool Slots">
+            ${toolItems.map((item) => renderSlot(item, 'tool')).join('')}
+          </div>
+        ` : ''}
+
+        ${showTools ? `<div class="section-label">
+            <ha-icon icon="mdi:cube-outline" style="--mdc-icon-size: 16px;"></ha-icon>
+            Resources
+          </div>` : ''}
         <div class="grid" role="list" aria-label="Inventory Slots">
-          ${gridItems.map(item => {
-            if (!item) {
-              return `<div class="slot empty" role="listitem" aria-label="Empty slot"></div>`;
-            }
-            const escapedLabel = this.escapeHtml(item.details.label);
-            const escapedQuantity = this.escapeHtml(item.quantity);
-            return `
-              <div class="slot" role="listitem" aria-label="${escapedLabel}: ${escapedQuantity}" title="${escapedLabel}: ${escapedQuantity}">
-                <div class="slot-content" style="--item-bg: ${item.details.bg}; --item-border: ${item.details.border}; --item-color: ${item.details.color};">
-                  <ha-icon icon="${item.details.icon}"></ha-icon>
-                </div>
-                <div class="quantity">${escapedQuantity}</div>
-              </div>
-            `;
-          }).join('')}
+          ${gridItems.map((item) => renderSlot(item)).join('')}
         </div>
 
         ${showUpkeep ? `
@@ -439,6 +532,7 @@ class RustStorageCard extends HTMLElement {
       title: '',
       columns: 6,
       slots: 30,
+      show_tools: true,
       show_empty: true,
       show_upkeep: true
     };
@@ -480,6 +574,7 @@ class RustStorageCardEditor extends HTMLElement {
           title: 'Title (blank = use entity name)',
           columns: 'Columns',
           slots: 'Total slots',
+          show_tools: 'Show tool slots (Hammer, Spray Can, …)',
           show_empty: 'Show empty slots',
           show_upkeep: 'Show decay upkeep'
         };
@@ -494,6 +589,7 @@ class RustStorageCardEditor extends HTMLElement {
       { name: 'title', selector: { text: {} } },
       { name: 'columns', selector: { number: { min: 1, max: 12, mode: 'box' } } },
       { name: 'slots', selector: { number: { min: 1, max: 120, mode: 'box' } } },
+      { name: 'show_tools', selector: { boolean: {} } },
       { name: 'show_empty', selector: { boolean: {} } },
       { name: 'show_upkeep', selector: { boolean: {} } }
     ];
