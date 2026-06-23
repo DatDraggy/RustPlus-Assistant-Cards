@@ -29,13 +29,21 @@ All cards ship from a **single JavaScript file** (`rustplus-cards.js`), which im
 
 ### Method 2: Manual Installation
 
-1. Copy this repository into your Home Assistant `www/` folder, e.g. `/config/www/rustplus-cards/` (keep the `src/` folder — `rustplus-cards.js` imports the cards from it).
-2. Add the resource in **Settings** > **Dashboards** > **Resources**:
-   - **URL**: `/local/rustplus-cards/rustplus-cards.js`
-   - **Type**: `JavaScript Module`
-3. Refresh the Home Assistant frontend.
+**Option A — single bundled file (recommended):**
 
-> The entry file `rustplus-cards.js` uses ES module imports to load the cards from `src/`, so the `src/` folder must be served alongside it.
+1. Download `rustplus-cards.js` from the [latest release](../../releases/latest).
+2. Copy it to your Home Assistant `www/` folder, e.g. `/config/www/rustplus-cards.js`.
+3. Add the resource in **Settings** > **Dashboards** > **Resources**:
+   - **URL**: `/local/rustplus-cards.js`
+   - **Type**: `JavaScript Module`
+4. Refresh the Home Assistant frontend.
+
+**Option B — serve the repository directly (for development):**
+
+1. Copy this repository into your `www/` folder, e.g. `/config/www/rustplus-cards/` (keep the `src/` folder intact).
+2. Add the resource with **URL** `/local/rustplus-cards/src/rustplus-cards.js` and **Type** `JavaScript Module`.
+
+> The release bundle is self-contained. The `src/rustplus-cards.js` entry instead uses ES module imports, so its sibling card files in `src/` must be served alongside it.
 
 ---
 
@@ -94,4 +102,26 @@ title: ""                       # Optional
 
 ## Development
 
-Card sources live in [`src/`](src/). The root [`rustplus-cards.js`](rustplus-cards.js) is the entry point that imports them all; add a new card by creating it under `src/` and adding one `import` line there.
+Card sources live in [`src/`](src/). [`src/rustplus-cards.js`](src/rustplus-cards.js) is the entry point that imports them all; add a new card by creating it under `src/` and adding one `import` line there.
+
+### Building
+
+The cards are bundled into a single self-contained file with [esbuild](https://esbuild.github.io/):
+
+```bash
+npm ci
+npm run build      # -> dist/rustplus-cards.js
+```
+
+`dist/` is git-ignored — it's a build artifact, not committed.
+
+### Releasing
+
+Pushing a `v*` tag triggers the [Build & Release workflow](.github/workflows/release.yml), which builds the bundle and attaches `rustplus-cards.js` to a GitHub release. HACS picks it up from there.
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+Every push and pull request also runs the build as a check, so a broken bundle is caught before release.

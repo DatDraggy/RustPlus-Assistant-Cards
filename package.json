@@ -1,0 +1,12 @@
+{
+  "name": "rustplus-assistant-cards",
+  "version": "0.0.0",
+  "description": "Lovelace cards for the Rust+ Assistant integration.",
+  "private": true,
+  "scripts": {
+    "build": "esbuild ./src/rustplus-cards.js --bundle --format=esm --outfile=dist/rustplus-cards.js --legal-comments=none"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}

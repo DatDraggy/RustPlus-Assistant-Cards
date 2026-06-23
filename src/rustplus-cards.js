@@ -4,11 +4,12 @@
 // so this module pulls in every card. Loading just this file registers all of
 // them with the card picker: storage, server, clock and turret.
 //
-// Reference it once as a `JavaScript Module` resource, e.g.
-//   /hacsfiles/RustPlus-Assistant-Cards/rustplus-cards.js
-//   /local/rustplus-cards/rustplus-cards.js   (manual install)
+// For HACS this is bundled (esbuild) into a single dist/rustplus-cards.js that
+// is attached to the release and served at /hacsfiles/<repo>/rustplus-cards.js.
+// For a raw checkout it works as-is, served e.g. at
+//   /local/rustplus-cards/src/rustplus-cards.js
 //
-// The individual card sources live in ./src/ and are imported below.
+// The individual card sources live alongside this file and are imported below.
 import './rustplus-storage-card.js';
 import './rustplus-server-card.js';
 import './rustplus-clock-card.js';
