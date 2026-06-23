@@ -119,6 +119,8 @@ class RustStorageCard extends HTMLElement {
     if (name.includes('spray can') || name.includes('spraycan') || name.includes('building skin')) return make('mdi:spray', '#34d399');
     if (name.includes('hose tool') || name === 'hose') return make('mdi:water', '#38bdf8');
     if (name.includes('wire tool') || name.includes('electric tool')) return make('mdi:flash', '#fbbf24');
+    // "pipe tool" only (not the "Metal Pipe" component, which isn't a TC tool).
+    if (name.includes('pipe tool')) return make('mdi:pipe-wrench', '#cbd5e1');
     return null;
   }
 
