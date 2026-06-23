@@ -1,0 +1,47 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build bundle
+        run: npm run build
+
+      # Sanity-check the bundle parses as a module before we ship it.
+      - name: Verify bundle
+        run: node --check dist/rustplus-cards.js
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustplus-cards
+          path: dist/rustplus-cards.js
+
+      # Only on tag pushes: create/update the GitHub release and attach the
+      # single bundled file HACS downloads (its name matches hacs.json filename).
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/rustplus-cards.js
+          generate_release_notes: true
