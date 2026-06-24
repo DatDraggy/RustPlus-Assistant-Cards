@@ -2,7 +2,8 @@
 //
 // HACS (and a manual Lovelace resource) can only reference one JavaScript file,
 // so this module pulls in every card. Loading just this file registers all of
-// them with the card picker: storage, server, clock and turret.
+// them with the card picker: storage, server, clock, turret, squad, chat and
+// event feed.
 //
 // For HACS this is bundled (esbuild) into a single dist/rustplus-cards.js that
 // is attached to the release and served at /hacsfiles/<repo>/rustplus-cards.js.
@@ -14,3 +15,6 @@ import './rustplus-storage-card.js';
 import './rustplus-server-card.js';
 import './rustplus-clock-card.js';
 import './rustplus-turret-card.js';
+import './rustplus-squad-card.js';
+import './rustplus-chat-card.js';
+import './rustplus-event-feed-card.js';

@@ -88,7 +88,7 @@ class RustStorageCard extends HTMLElement {
     if (name.includes('stone')) return 1000;
     if (name.includes('wood')) return 1000;
     if (name.includes('metal fragment') || name.includes('metal frag')) return 1000;
-    if (name.includes('high quality metal') || name.includes('hqm')) return 500; // custom/default stack sizes
+    if (name.includes('high quality metal') || name.includes('hqm')) return 100; // vanilla HQM stacks to 100
     if (name.includes('low grade fuel') || name.includes('lgf')) return 500;
     if (name.includes('charcoal')) return 1000;
     if (name.includes('sulfur ore')) return 1000;
