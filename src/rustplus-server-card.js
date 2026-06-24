@@ -202,10 +202,14 @@ class RustServerCard extends HTMLElement {
         .bar-busy .bar-fill { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
         .bar-full .bar-fill { background: linear-gradient(90deg,#ef4444,#f87171); }
         .stats {
-          display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+          /* Responsive: as many ~140px columns as fit, collapsing to 1 on narrow
+             cards (mobile / many-column dashboards) instead of cramping into 2. */
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 8px;
         }
         .stat {
-          display: flex; align-items: center; gap: 8px;
+          display: flex; align-items: center; gap: 8px; min-width: 0;
           background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
           border-radius: 6px; padding: 8px 10px;
         }
