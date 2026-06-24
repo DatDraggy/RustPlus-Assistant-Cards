@@ -14,6 +14,9 @@ A collection of custom Home Assistant Lovelace cards designed for the **Rust+ As
 | 🖥️ **Server Status** | `custom:rust-server-card` | Banner with the server logo/name, a live player-count bar with queue badge, and map / size / seed / wipe-age stats. |
 | 🕑 **In-Game Clock** | `custom:rust-clock-card` | A 24-hour day/night dial with the sunrise→sunset arc and a countdown to the next dawn/dusk. |
 | 🎯 **Turret / Camera** | `custom:rust-turret-card` | Live CCTV/turret feed with an aim D-pad, fire button, and a Control toggle (auto-resolved from the camera's device). |
+| 👥 **Team Squad** | `custom:rust-squad-card` | Team roster with Steam avatars, online/alive status, grid position and a leader crown (auto-detects the teammate sensors). |
+| 💬 **Team Chat** | `custom:rust-chat-card` | Live team-chat log with colored names and a send box. |
+| 📡 **Server Event Feed** | `custom:rust-event-feed-card` | Cargo / Patrol Heli / CH47 / Traveling Vendor with "active now" badges and estimated next-spawn countdowns. |
 
 ## Installation
 
@@ -51,11 +54,16 @@ All cards ship from a **single JavaScript file** (`rustplus-cards.js`), which im
 
 Add a card to your dashboard and configure it in YAML (each card also has a visual editor in the card picker).
 
+> **Entity IDs are prefixed with a short version of your server's name.** A server shown
+> as `[EU] TideRust |Solo/Duo...` produces `sensor.tiderust_time`, `camera.tiderust_map`,
+> etc. The examples below use `tiderust` as that prefix — replace it with yours (or just
+> use the visual editor's entity picker).
+
 ### Storage Monitor
 
 ```yaml
 type: custom:rust-storage-card
-entity: sensor.rust_storage_monitor_friendly_name
+entity: sensor.tiderust_tool_cupboard_wood
 title: "Tool Cupboard"      # Optional: custom title
 columns: 6                  # Optional: number of columns (default: 6)
 slots: 24                   # Optional: total inventory slots (default: 30)
@@ -68,15 +76,15 @@ custom_stack_sizes:         # Optional: customize stack sizes for items
   Low Grade Fuel: 500
 ```
 
-**Default stack sizes** — Wood, Stones, Metal Fragments, Charcoal, Sulfur, Ore, Scrap: `1000`; High Quality Metal, Low Grade Fuel: `500`; Explosives: `100`.
+**Default stack sizes** — Wood, Stones, Metal Fragments, Charcoal, Sulfur, Ore, Scrap: `1000`; Low Grade Fuel: `500`; High Quality Metal: `100`; Explosives: `100`.
 
 ### Server Status
 
 ```yaml
 type: custom:rust-server-card
-entity: sensor.rust_server
-time_entity: sensor.rust_time            # Optional: adds an in-game clock line
-daytime_entity: binary_sensor.rust_daytime  # Optional
+entity: sensor.tiderust_server
+time_entity: sensor.tiderust_time            # Optional: adds an in-game clock line
+daytime_entity: binary_sensor.tiderust_daytime  # Optional
 show_banner: true
 show_players: true
 show_stats: true
@@ -86,8 +94,8 @@ show_stats: true
 
 ```yaml
 type: custom:rust-clock-card
-entity: sensor.rust_time
-daytime_entity: binary_sensor.rust_daytime  # Optional
+entity: sensor.tiderust_time
+daytime_entity: binary_sensor.tiderust_daytime  # Optional
 title: ""                                    # Optional
 ```
 
@@ -95,10 +103,43 @@ title: ""                                    # Optional
 
 ```yaml
 type: custom:rust-turret-card
-camera: camera.rust_dragoncam   # The turret/CCTV camera; siblings (aim/fire buttons,
+camera: camera.tiderust_dragoncam   # The turret/CCTV camera; siblings (aim/fire buttons,
                                 # Control switch) are auto-resolved from its device
 title: ""                       # Optional
 ```
+
+### Team Squad
+
+```yaml
+type: custom:rust-squad-card
+title: "Squad"      # Optional
+columns: 1          # Optional: 1–4 (default 1)
+# entities: []      # Optional: explicit teammate sensors (default: auto-detect)
+```
+
+### Team Chat
+
+```yaml
+type: custom:rust-chat-card
+entity: sensor.tiderust_last_team_message
+send: true          # Optional: show the send box (default true)
+max: 50             # Optional: messages kept in the log (default 50)
+title: "Team Chat"  # Optional
+```
+
+> Home Assistant keeps no chat history, so the log fills as messages arrive while the
+> card is open. Sending uses the `rustplus_assistant.send_team_message` service.
+
+### Server Event Feed
+
+```yaml
+type: custom:rust-event-feed-card
+title: "Events"     # Optional
+# entities: []      # Optional: explicit event binary_sensors (default: auto-detect)
+```
+
+> "Est. next" countdowns are a rolling-average heuristic and need ≥2 observed spawns
+> (they show "learning…" until then).
 
 ## Development
 

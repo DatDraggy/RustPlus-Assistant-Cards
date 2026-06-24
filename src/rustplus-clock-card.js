@@ -1,7 +1,7 @@
 // Rust+ In-Game Clock / Day-Night Card
 //
 // A 24-hour dial for the Rust+ Assistant integration's in-game time sensor
-// (sensor.rust_time). Noon sits at the top, midnight at the bottom; the lit arc
+// (sensor.tiderust_time). Noon sits at the top, midnight at the bottom; the lit arc
 // spans sunrise -> sunset (from the sensor's attributes) and a marker tracks the
 // current in-game time. The centre shows the digital clock, a day/night label,
 // and an in-game countdown to the next dawn or dusk. Raiders read it for the
@@ -15,7 +15,7 @@ class RustClockCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error('Please define the Rust+ time entity (sensor.rust_time)');
+      throw new Error('Please define the Rust+ time entity (sensor.tiderust_time)');
     }
     this.config = { ...config };
   }
@@ -215,8 +215,8 @@ class RustClockCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      entity: 'sensor.rust_time',
-      daytime_entity: 'binary_sensor.rust_daytime',
+      entity: 'sensor.tiderust_time',
+      daytime_entity: 'binary_sensor.tiderust_daytime',
       title: '',
     };
   }

@@ -3,7 +3,7 @@
 // A banner-style overview of a Rust server for the Rust+ Assistant integration:
 // the Facepunch header image, server name, a live player-count bar with queue
 // badge, and map / size / seed / wipe-age stats. Reads everything from the
-// "Rust+ Server" info sensor (sensor.rust_server) and degrades gracefully when
+// "Rust+ Server" info sensor (sensor.tiderust_server) and degrades gracefully when
 // an attribute (e.g. banner image) isn't present, optionally folding in the
 // in-game time sensor for a clock line.
 
@@ -15,7 +15,7 @@ class RustServerCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error('Please define the Rust+ Server info entity (sensor.rust_server)');
+      throw new Error('Please define the Rust+ Server info entity (sensor.tiderust_server)');
     }
     this.config = {
       // time_entity is optional; when set, an in-game clock line is shown.
@@ -272,9 +272,9 @@ class RustServerCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      entity: 'sensor.rust_server',
-      time_entity: 'sensor.rust_time',
-      daytime_entity: 'binary_sensor.rust_daytime',
+      entity: 'sensor.tiderust_server',
+      time_entity: 'sensor.tiderust_time',
+      daytime_entity: 'binary_sensor.tiderust_daytime',
       show_banner: true,
       show_players: true,
       show_stats: true,

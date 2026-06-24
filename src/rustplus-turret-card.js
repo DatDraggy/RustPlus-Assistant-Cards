@@ -17,7 +17,7 @@ class RustTurretCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.camera) {
-      throw new Error('Please define the Rust+ camera entity (e.g. camera.rust_turret)');
+      throw new Error('Please define the Rust+ camera entity (e.g. camera.tiderust_dragoncam)');
     }
     this.config = { ...config };
     // Force a rebuild if the configured camera changed.
@@ -52,9 +52,10 @@ class RustTurretCard extends HTMLElement {
 
   _startRefresh() {
     this._stopRefresh();
-    // The integration throttles snapshots to ~5s server-side, so polling the
-    // proxied frame every few seconds is enough to look live without churn.
-    this._timer = setInterval(() => this._refreshImage(), 3500);
+    // Idle the integration throttles snapshots to ~5s server-side, so a few-second
+    // poll looks live without churn. Under active control it refreshes much faster
+    // (see _update, which retunes this), so poll quickly to track each aim move.
+    this._timer = setInterval(() => this._refreshImage(), this._interval || 3500);
   }
 
   _stopRefresh() {
@@ -102,6 +103,10 @@ class RustTurretCard extends HTMLElement {
   _press(entityId) {
     if (!entityId || !this._hass) return;
     this._hass.callService('button', 'press', { entity_id: entityId });
+    // The feed is throttled/accumulated server-side, so the post-move frame isn't
+    // ready instantly — nudge a short burst of refreshes to pick it up promptly
+    // instead of waiting for the next poll tick.
+    [350, 800, 1400].forEach((ms) => setTimeout(() => this._refreshImage(), ms));
   }
 
   _toggleControl() {
@@ -331,6 +336,14 @@ class RustTurretCard extends HTMLElement {
       this._hint.textContent = 'Live — auto-aim is disabled while you hold control.';
     } else {
       this._hint.textContent = '';
+    }
+
+    // Poll fast while actively controlling (the feed refreshes sub-second
+    // server-side then), relaxed otherwise. Retune the timer only when it changes.
+    const desired = isOn ? 500 : 3500;
+    if (this._interval !== desired) {
+      this._interval = desired;
+      if (this._timer) this._startRefresh();
     }
 
     this._refreshImage();
