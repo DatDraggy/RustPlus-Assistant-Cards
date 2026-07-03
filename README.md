@@ -17,6 +17,7 @@ A collection of custom Home Assistant Lovelace cards designed for the **Rust+ As
 | 👥 **Team Squad** | `custom:rust-squad-card` | Team roster with Steam avatars, online/alive status, grid position and a leader crown (auto-detects the teammate sensors). |
 | 💬 **Team Chat** | `custom:rust-chat-card` | Live team-chat log with colored names and a send box. |
 | 📡 **Server Event Feed** | `custom:rust-event-feed-card` | Cargo / Patrol Heli / CH47 / Traveling Vendor with "active now" badges and estimated next-spawn countdowns. |
+| 🛡️ **Raid Defense** | `custom:rust-raid-card` | Labeled smart-alarm board with severity tiers, a RAID banner and a fire timeline. Pair with Seismic Sensor wiring for explosive-tier alarms. |
 
 ## Installation
 
@@ -140,6 +141,39 @@ title: "Events"     # Optional
 
 > "Est. next" countdowns are a rolling-average heuristic and need ≥2 observed spawns
 > (they show "learning…" until then).
+
+### Raid Defense
+
+```yaml
+type: custom:rust-raid-card
+title: "Raid Defense"
+window: 10       # Minutes a fire stays "recent" / counts toward the raid banner
+threshold: 2     # Recent fires that trigger the RAID IN PROGRESS banner
+alarms:          # Plain entity ids, or objects with label / severity / icon
+  - entity: event.tiderust_seismic_heavy_event
+    label: "Seismic — heavy (Rocket / C4 / MLRS)"
+    icon: mdi:rocket-launch
+    severity: critical
+  - entity: event.tiderust_seismic_medium_event
+    label: "Seismic — medium (Satchel / Expl. ammo)"
+    severity: high
+  - entity: event.tiderust_wall_alarm_event
+    severity: low
+```
+
+**Explosive-tier wiring (in-game):** a Seismic Sensor outputs power by explosive
+tier — **3 rW** for MLRS/Rocket/C4, **2 rW** for Satchel/Explosive ammo/40mm/
+Torpedo/Mortar, **1 rW** for grenades and the rest — as a single 3 s pulse. Chain
+two Electrical Branches to split that into exclusive tier alarms:
+
+```
+Seismic Sensor → Branch A (limit 3) → branch-out → "heavy" Smart Alarm
+                    └ passthrough → Branch B (limit 2) → branch-out → "medium" Smart Alarm
+                                        └ passthrough → "light" Smart Alarm
+```
+
+A 3 rW hit powers only Branch A's out; 2 rW passes A and powers B's out; 1 rW
+passes both and powers the light alarm — three alarms, one per explosive tier.
 
 ## Development
 

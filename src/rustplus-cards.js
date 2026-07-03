@@ -18,3 +18,4 @@ import './rustplus-turret-card.js';
 import './rustplus-squad-card.js';
 import './rustplus-chat-card.js';
 import './rustplus-event-feed-card.js';
+import './rustplus-raid-card.js';
