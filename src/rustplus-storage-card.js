@@ -236,18 +236,22 @@ class RustStorageCard extends HTMLElement {
     }
 
     // Split tools out so they lead, mirroring the Tool Cupboard's tool slots.
-    const toolStacks = stacks.filter((s) => s.details.isTool);
-    const resourceStacks = stacks.filter((s) => !s.details.isTool);
+    // With show_tools off (e.g. a plain box), tools stay in the main grid —
+    // otherwise a stored hammer would silently vanish from the card.
+    const splitTools = this.config.show_tools;
+    const toolStacks = splitTools ? stacks.filter((s) => s.details.isTool) : [];
+    const resourceStacks = splitTools ? stacks.filter((s) => !s.details.isTool) : stacks;
 
-    // Tools row: the 5 dedicated slots (or more if somehow overfull), padded.
+    // Render the tools row only when actual tools are present, so a box (no TC
+    // tools) doesn't grow an empty Tools section; pad to the 5 dedicated slots.
+    const showTools = splitTools && toolStacks.length > 0;
     const toolSlotCount = Math.max(RustStorageCard.TOOL_SLOTS, toolStacks.length);
     const toolItems = [...toolStacks];
-    if (this.config.show_empty) {
+    if (showTools && this.config.show_empty) {
       while (toolItems.length < toolSlotCount) {
         toolItems.push(null);
       }
     }
-    const showTools = this.config.show_tools && toolItems.length > 0;
 
     // Determine total slots grid size for the resource grid.
     const totalSlots = Math.max(this.config.slots, Math.ceil(resourceStacks.length / this.config.columns) * this.config.columns);

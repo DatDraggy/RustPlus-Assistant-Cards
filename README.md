@@ -79,6 +79,18 @@ custom_stack_sizes:         # Optional: customize stack sizes for items
 
 **Default stack sizes** — Wood, Stones, Metal Fragments, Charcoal, Sulfur, Ore, Scrap: `1000`; Low Grade Fuel: `500`; High Quality Metal: `100`; Explosives: `100`.
 
+For a **regular box** (not a Tool Cupboard), drop the TC-specific rows:
+
+```yaml
+type: custom:rust-storage-card
+entity: sensor.tiderust_loot_box
+title: "Loot Room"
+slots: 47             # Large box capacity
+columns: 6
+show_tools: false     # No dedicated tool row (tools show in the main grid)
+show_upkeep: false    # Boxes have no decay upkeep
+```
+
 ### Server Status
 
 ```yaml
